@@ -1,8 +1,8 @@
 using System;
 using System.Collections;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
+//using System.Net.Http;
+//using System.Threading;
+//using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -10,20 +10,20 @@ public class ServerTimeProvider : MonoBehaviour
 {
     [SerializeField] private Controls _controls;
 
-    private static HttpClient httpClient = new HttpClient();
+    //private static HttpClient _httpClient = new HttpClient();
 
-    private string _url = "https://yandex.com/time/sync.json";
-    private bool _isRunning = true;
+    private string _url = "https://worldtimeapi.org/api/timezone/Europe/Moscow";
+    //private bool _isRunning = true;
 
     public event Action<DateTime> TimeIsLoaded;
 
     private void Start()
     {
         // Вариант с асинхронностью, System.Net.Http и using System.Threading.Tasks
-        GetTimeAsync();
+        //GetTimeAsync();
 
         // Вариант с корутиной и using UnityEngine.Networking
-        //StartCoroutine(GetTimeRoutine());
+        StartCoroutine(GetTimeRoutine());
     }
 
     private void OnEnable()
@@ -38,67 +38,68 @@ public class ServerTimeProvider : MonoBehaviour
         _controls.ManuallyModeDisabled -= ResumeServerTimeProvider;
     }
 
-    private async void GetTimeAsync()
-    {
-        await GetRequest();
+    //private async void GetTimeAsync()
+    //{
+    //    await GetRequest();
 
-        RepeatGetRequestWithDelay();
-    }
+    //    RepeatGetRequestWithDelay();
+    //}
 
-    private async void RepeatGetRequestWithDelay()
-    {
-        if (_isRunning)
-        {
-            var task = Task.Run(() =>
-            {
-                Thread.Sleep(3600 * 1000);
-            });
+    //private async void RepeatGetRequestWithDelay()
+    //{
+    //    if (_isRunning)
+    //    {
+    //        var task = Task.Run(() =>
+    //        {
+    //            Thread.Sleep(3600 * 1000);
+    //        });
 
-            await GetRequest();
+    //        await GetRequest();
 
-            await task;
+    //        await task;
 
-            if (Application.isPlaying)
-            {
-                RepeatGetRequestWithDelay();
-            }
-        }
-    }
+    //        if (Application.isPlaying)
+    //        {
+    //            RepeatGetRequestWithDelay();
+    //        }
+    //    }
+    //}
 
-    private async Task GetRequest()
-    {
-        using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, _url);
+    //private async Task GetRequest()
+    //{
+    //    using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, _url);
 
-        using HttpResponseMessage response = await httpClient.SendAsync(request);
+    //    using HttpResponseMessage response = await _httpClient.SendAsync(request);
         
-        if (response.IsSuccessStatusCode)
-        {
-            string content = await response.Content.ReadAsStringAsync();
+    //    if (response.IsSuccessStatusCode)
+    //    {
+    //        string content = await response.Content.ReadAsStringAsync();
 
-            YandexTimeData timeResponse = JsonUtility.FromJson<YandexTimeData>(content);
+    //        YandexTimeData timeResponse = JsonUtility.FromJson<YandexTimeData>(content);
 
-            DateTime currentTime = DateTimeOffset.FromUnixTimeMilliseconds(timeResponse.time).LocalDateTime;
+    //        DateTime currentTime = DateTimeOffset.FromUnixTimeMilliseconds(timeResponse.time).LocalDateTime;
 
-            TimeIsLoaded?.Invoke(currentTime);
-        }
-        else
-        {
-            Debug.Log($"Ошибка при запросе времени: response status {response.StatusCode}");
-        }
-    }
+    //        TimeIsLoaded?.Invoke(currentTime);
+    //    }
+    //    else
+    //    {
+    //        Debug.Log($"Ошибка при запросе времени: response status {response.StatusCode}");
+    //    }
+    //}
 
     private IEnumerator GetTimeRoutine()
     {
         UnityWebRequest request = UnityWebRequest.Get(_url);
+
         yield return request.SendWebRequest();
 
         if (request.result == UnityWebRequest.Result.Success)
         {
             string jsonResponse = request.downloadHandler.text;
 
-            YandexTimeData timeResponse = JsonUtility.FromJson<YandexTimeData>(jsonResponse);
+            ServerTimeData timeResponse = JsonUtility.FromJson<ServerTimeData>(jsonResponse);
 
-            DateTime currentTime = DateTimeOffset.FromUnixTimeMilliseconds(timeResponse.time).LocalDateTime;
+            DateTime currentTime = DateTimeOffset.FromUnixTimeSeconds(timeResponse.unixtime).LocalDateTime;
 
             TimeIsLoaded?.Invoke(currentTime);
         }
@@ -116,14 +117,20 @@ public class ServerTimeProvider : MonoBehaviour
     {
         if (changeModeEnabled)
         {
-            _isRunning = false;
+            //_isRunning = false;
+
+            StopAllCoroutines();
         }
     }
 
     private void ResumeServerTimeProvider()
     {
-        _isRunning = true;
+        StopAllCoroutines();
 
-        GetTimeAsync();
+        //_isRunning = true;
+
+        //GetTimeAsync();
+
+        StartCoroutine(GetTimeRoutine());
     }
 }
